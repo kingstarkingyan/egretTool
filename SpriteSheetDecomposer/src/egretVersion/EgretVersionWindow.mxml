@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+				xmlns:mx="library://ns.adobe.com/flex/mx"
+				width="1000" height="600" close="titlewindow1_closeHandler(event)"
+				creationComplete="titlewindow1_creationCompleteHandler(event)" fontSize="12"
+				layout="absolute" showCloseButton="true">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.core.UIComponent;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			
+			import nodep.util.FileUtil;
+			import nodep.util.TxtUtil;
+			
+			private var _box:UIComponent;
+			
+			private var _oldProject:File;
+			private var _newProject:File;
+			
+			protected function titlewindow1_closeHandler(event:CloseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			protected function titlewindow1_creationCompleteHandler(event:FlexEvent):void
+			{
+				FileUtil.choosePath(pathSelected,"选择参照项目","old");
+				this._box = new UIComponent();
+				this._box.x = 0;
+				this._box.y = 0;
+				this.addChild(this._box);
+			}
+			
+			//路径选择后
+			private function pathSelected(file:File,optKey:String=null):void{
+				switch(optKey){
+					case "old":
+						_oldProject = file;
+						FileUtil.choosePath(pathSelected,"选择发布项目","new");
+						break;
+					case "new":
+						_newProject = file;
+						startComper();
+						break;
+				}
+			}
+			
+			private function startComper():void{
+				var version:String = "";
+				var date:Date = new Date();
+				version = date.fullYear+""+(date.month+1)+""+date.date+""+date.hours+""+date.minutes;
+				trace("最新的版本号为"+version);
+				//1.修改index中的版本号
+				var str:String = FileUtil.getStr(_newProject.nativePath+"/index.html");
+				str = TxtUtil.replace(str,"window.version",version);
+				FileUtil.saveStr(_newProject.nativePath+"/index.html",str);
+				//2.加载资源列表配置文件
+				var resConfigUrl:String = _newProject.nativePath+"/"+"resource/default.res.json";
+				var configStr:String = FileUtil.getStr(resConfigUrl);
+				var configObj:Object = JSON.parse(configStr);
+				var resList:Array = configObj["resources"];
+				for each(var resObjc:Object in resList){
+					var newResUrl:String = _newProject.nativePath+"/resource/"+resObjc.url;
+					var oldResUrl:String = _oldProject.nativePath+"/resource/"+resObjc.url;
+					if(FileUtil.isDifferent(newResUrl,oldResUrl)){
+						resObjc.url = resObjc.url+"?v="+version;
+						trace(resObjc.url);
+					}
+				}
+				configStr = JSON.stringify(configObj);
+				FileUtil.saveStr(resConfigUrl,configStr);
+//				//3.加载皮肤配置.exmls。代码不对下次再改
+//				var skinUrl:String = _newProject.nativePath+"/"+"resource/default.thm.json";
+//				var skinStr:String = FileUtil.getStr(skinUrl);
+//				var skinObj:Object = JSON.parse(skinStr);
+//				var skinList:Array = skinObj["exmls"];
+//				for each(var skinObjc:Object in skinList){
+//					var newResPath:String = _newProject.nativePath+"/"+skinObjc.path;
+//					var oldResPath:String = _oldProject.nativePath+"/"+skinObjc.path;
+//					if(FileUtil.isDifferent(newResPath,oldResPath)){
+//						skinObjc.path = skinObjc.path+"?v="+version;
+//						trace(skinObjc.path);
+//					}
+//				}
+//				skinStr = JSON.stringify(skinObj);
+//				FileUtil.saveStr(skinUrl,skinStr);
+			}
+		]]>
+	</fx:Script>
+</mx:TitleWindow>

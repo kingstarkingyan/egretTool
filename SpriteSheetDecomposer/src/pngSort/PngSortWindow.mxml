@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" layout="absolute" width="1000" height="600" showCloseButton="true" fontSize="12" close="titlewindow1_closeHandler(event)" creationComplete="titlewindow1_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import mx.core.UIComponent;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			
+			import nodep.util.FileUtil;
+			
+			private var pngs:Array = [];
+			private var _box:UIComponent;
+			private var _showIndex:int = 0;
+			private var _focus:Bitmap;
+			
+			protected function titlewindow1_closeHandler(event:CloseEvent):void
+			{
+				this.stage.removeEventListener(KeyboardEvent.KEY_DOWN,keyControldownHandler);
+				PopUpManager.removePopUp(this);
+			}
+			
+			protected function titlewindow1_creationCompleteHandler(event:FlexEvent):void
+			{
+				FileUtil.choosePath(pathSelected,"png序列图片","selectPngs");
+				this._box = new UIComponent();
+				this._box.x = 200;
+				this._box.y = 200;
+				this.addChild(this._box);
+				this.addController();
+			}
+			
+			//路径选择后
+			private function pathSelected(file:File,optKey:String=null):void{
+				switch(optKey){
+					case "selectPngs":
+						decode(file);
+						break;
+				}
+			}
+			
+			//解析图片
+			private function decode(file:File):void{
+				for each(var f:File in file.getDirectoryListing())
+				{
+					if(f.isDirectory)
+						continue;
+					var png:PngSorter = new PngSorter(f);
+					this._box.addChild(png);
+					pngs.push(png);
+				}
+				this.updateShow();
+			}
+			
+			private function updateShow():void{
+				for(var i:int=0;i<pngs.length;i++){
+					pngs[i].visible = i==_showIndex;
+					if(pngs[i].visible)
+						_focus = pngs[i];
+				}
+			}
+			
+			private function addController():void{
+				this.stage.addEventListener(KeyboardEvent.KEY_DOWN,keyControldownHandler);
+			}
+			
+			private function keyControldownHandler(evt:KeyboardEvent):void{
+				switch(evt.keyCode){
+					case 38://上
+						_focus.y--;
+						break;
+					case 40://下
+						_focus.y++
+						break;
+					case 37://左
+						_focus.x--;
+						break;
+					case 39://右
+						_focus.x++;
+						break;
+					case 16://用shift切换图片
+						_showIndex++;
+						if(_showIndex>=pngs.length)
+							_showIndex = 0;
+						updateShow();
+						break;
+				}
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+</mx:TitleWindow>

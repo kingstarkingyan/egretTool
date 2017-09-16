@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						xmlns:mx="library://ns.adobe.com/flex/mx" frameRate="60" showStatusBar="false" layout="absolute" maxWidth="1136" maxHeight="640" minWidth="1136" minHeight="640" title="常用工具"
+						creationComplete="callLater(init)" fontSize="12">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.controls.Button;
+			import mx.core.IFlexDisplayObject;
+			import mx.managers.PopUpManager;
+			
+			import decomposer.PlistDecomposer;
+			
+			import egretVersion.EgretVersionWindow;
+			
+			import nodep.ui.WinsManager;
+			import nodep.util.FileUtil;
+			
+			import pngSort.PngSortWindow;
+			
+			private function init():void{
+				this.initUI();
+			}
+			
+			/*初始化界面*/
+			private function initUI():void{
+				this.addButton("plist",20,20,"分解Plist");
+				this.addButton("pngMaker",20,50,"png序列排布");
+				this.addButton("egretVersionControl",20,80,"egret版本控制器");
+				WinsManager.init(this.stage);
+			}
+			
+			//添加按钮
+			private function addButton(bname:String,bx:int,by:int,label:String):void
+			{
+				var btn:Button = new Button();
+				btn.x = bx;
+				btn.y = by;
+				btn.name = bname;
+				btn.label = label;
+				this.addChild(btn);
+				btn.addEventListener(MouseEvent.CLICK,optClickHandler);
+			}
+			
+			private function optClickHandler(evt:MouseEvent):void{
+				var bname:String = evt.target.name;
+				switch(bname){
+					case "plist":
+						FileUtil.choosePath(pathSelected,"分解Plist",bname);
+						break;
+					case "pngMaker":
+						var pngmk:IFlexDisplayObject = PopUpManager.createPopUp(this,PngSortWindow,true);
+						PopUpManager.centerPopUp(pngmk);
+						break;
+					case "egretVersionControl":
+						var egretVw:IFlexDisplayObject = PopUpManager.createPopUp(this,EgretVersionWindow,true);
+						PopUpManager.centerPopUp(egretVw);
+						break;
+				}
+			}
+			
+			//路径选择后
+			private function pathSelected(file:File,optKey:String=null):void{
+				switch(optKey){
+					case "plist":
+						PlistDecomposer.decode(file);
+						break;
+				}
+			}
+		]]>
+	</fx:Script>
+</mx:WindowedApplication>
