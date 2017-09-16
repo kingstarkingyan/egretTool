@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						xmlns:mx="library://ns.adobe.com/flex/mx" layout="absolute" creationComplete="callLater(init)" showStatusBar="false" fontSize="12">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<!-- Excel文件格式化程序 -->
+	</fx:Declarations>
+	<fx:Script> 
+		<![CDATA[
+			import com.as3xls.xls.ExcelFile;
+			import data.GbData;
+			import manager.MenuOptionManager;
+			import manager.ProjectManager;
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import utils.ExcelExport;
+			
+			private var _fileUrls:Array = [];
+			[Bindable]
+			private var _excelExport:ExcelExport;
+			private var _startTime:Number;
+			private var _targetUrl:String;
+			private var _lastStartTime:Number;
+			[Bindable]
+			private var _files:ArrayCollection = new ArrayCollection();
+			
+			private function init():void
+			{
+				_excelExport = new ExcelExport();
+				MenuOptionManager.init();
+				ProjectManager.init();
+			}
+			
+			/**初始化文件列表*/
+			public function initFileList():void
+			{
+				var file:File = new File(GbData.fileUrl);
+				if(!(file.exists&&file.isDirectory))
+					return;
+				_files = new ArrayCollection();
+				var fileUrls:Array = [];
+				_startTime = new Date().time;
+				_excelExport = new ExcelExport();
+				for each(var excelFile:File in file.getDirectoryListing())
+				{
+					if(excelFile.type == ".xlsx"||excelFile.type == ".xls")
+					{
+						fileUrls.push(excelFile.nativePath);
+						_files.addItem({"name":excelFile.name,"path":excelFile.nativePath});
+					}
+				}
+				addLog("->开始解析");
+				addLog("->等待解析的文件数量:"+fileUrls.length);
+				_fileUrls = fileUrls;
+				FlexGlobals.topLevelApplication.maximize();
+				startExport();
+			}
+			
+			/**
+			 * 开始解析
+			 */
+			public function startExport():void
+			{
+				if(_fileUrls.length==0)
+				{
+					addLog("->结束解析:共经历了"+(new Date().time - _startTime)+"ms");
+					return;
+				}
+				_lastStartTime = new Date().time;
+				_targetUrl = _fileUrls.shift();
+				addLog("->剩余文件:"+_fileUrls.length + " "+ _targetUrl);
+				var loader:URLLoader = new URLLoader();
+				loader.dataFormat = URLLoaderDataFormat.BINARY;
+				loader.addEventListener(Event.COMPLETE,completedHandler);
+				loader.load(new URLRequest(_targetUrl));
+			}
+			
+			/**
+			 * 加载完成后对excel数据的调用
+			 */
+			private function completedHandler(evt:Event):void
+			{
+				var excelFile:ExcelFile = new ExcelFile();
+				excelFile.loadFromByteArray(evt.target.data as ByteArray);
+				_excelExport.exportSheets(excelFile.sheets.toArray());
+				addLog("->"+_targetUrl + "耗时"+ (new Date().time - _lastStartTime));
+				startExport();
+			}
+			
+			public function addLog(str:String):void
+			{
+				cons.htmlText = str+"<br>"+cons.htmlText;
+			}
+		]]>
+	</fx:Script>
+	<mx:DataGrid left="10" top="10" bottom="10" width="580" dataProvider="{_files}" fontSize="12">
+		<mx:columns>
+			<mx:DataGridColumn width="100" dataField="name" headerText="FileName"/>
+			<mx:DataGridColumn dataField="path" headerText="Path"/>
+			<mx:DataGridColumn width="100" dataField="" headerText="Info"/>
+		</mx:columns>
+	</mx:DataGrid>
+	<mx:Button x="598" y="10" width="100" label="JSON" fontSize="12" fontWeight="normal" click="_excelExport.createFileForJSON()"/>
+	<mx:Button x="706" y="10" width="100" label="JsonAndZip" fontSize="12" fontWeight="normal" click="_excelExport.createFileForJsonZip()"/>
+	<mx:Button x="598" y="70" width="124" label="CodeForAs" fontSize="12" fontWeight="normal" click="_excelExport.createCodeForAs()"/>
+	<mx:Button x="598" y="100" width="124" label="CodeForEgret" fontSize="12" fontWeight="normal" click="_excelExport.createCodeForEgret()"/>
+	
+	<mx:Button x="598" y="40" width="100" label="XML" fontSize="12" fontWeight="normal"/>
+	<mx:Button x="706" y="40" width="100" label="XmlAndZip" fontSize="12" fontWeight="normal"/>
+	<mx:TextArea id="cons" left="598" right="10" bottom="10" height="162" borderStyle="solid"
+				 borderThickness="1" editable="false" focusAlpha="0" fontSize="12"/>
+	<mx:Label left="598" visible="{_excelExport.totalCount>0}" bottom="178" text="{_excelExport.count}/{_excelExport.totalCount}"/>
+</mx:WindowedApplication>

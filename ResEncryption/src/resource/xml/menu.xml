@@ -1,0 +1,5 @@
+<root>
+	<menu name="项目(&F)">
+		<item name="选择目录" id ="MAIN_CREATEWIN" fun="choosePath" key="C"/>
+	</menu>
+</root>
